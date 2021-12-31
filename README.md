@@ -6,7 +6,10 @@ This starts with just gluten, but will hopefully expand to other allergens.
 
 ## Prerequisites
 
-Please find the packages in requirements.txt
+Please find the packages in requirements.txt.
+Please add the root of the directory to the python path (if using conda:
+- conda install conda-build
+- conda develop <root_dir_path>
 
 ## Datasets
 

@@ -1,7 +1,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This project aims to, given either (or both) description of a dish or an image of said dish, detect whether or not it contains certain allergens.
+This project aims to, given either (or both) title of a dish or an image of said dish, detect whether or not it contains certain allergens.
 This starts with just gluten, but will hopefully expand to other allergens.
 
 ## Prerequisites
@@ -20,6 +20,7 @@ There is also a dataset AIFood that contains 370,000 food images, however this a
 <!-- ROADMAP -->
 ## Roadmap
 
+- [] Add the title of the dish
 - [] Detect lactose
 
 <!-- CONTRIBUTING -->

@@ -1,6 +1,8 @@
 from pathlib import Path
 
-DATA_FPATH = Path('data')
-LINKER_FPATH = DATA_FPATH /\
+DATA_DIR = Path('data')
+LINKER_FPATH = DATA_DIR /\
     'Food Ingredients and Recipe Dataset with Image Name Mapping.csv'
-IMAGES_FPATH = DATA_FPATH / 'Food Images' / 'Food Images'
+IMAGES_DIR = DATA_DIR / 'Food Images' / 'Food Images'
+HDF5_STORE_DIR = DATA_DIR / "hdf5_store"
+

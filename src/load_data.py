@@ -1,7 +1,7 @@
-from pathlib import Path
 import pandas as pd
 from typing import List, Tuple
 import numpy as np
+import h5py
 from PIL import Image
 
 import torch
@@ -23,7 +23,7 @@ GLUTEN_INGREDIENTS = [
 
 #  Also can uncomment the following to add ingredients that only sometimes contain gluten
 GLUTEN_INGREDIENTS.extend(['soy sauce'])
-TRAIN_VAL_TEST_PROPORTIONS = (0.05, 0.05, 0.9)
+TRAIN_VAL_TEST_PROPORTIONS = (0.1, 0.1, 0.8)
 
 
 def main():
@@ -34,14 +34,22 @@ class ImageDataset(Dataset):
     def __init__(self, raw_data, which_split):
         self.data_with_labels = add_labels_to_data(raw_data)
         self.data_with_labels = self.data_with_labels.reset_index()
-        hdf5_name = Path()
-        self.images = self.load_images_hdf5()
+        self.hdf5_fname = HDF5_STORE_DIR / f"{which_split}.hdf5"
+        self.dset = self.load_images_hdf5()
     
-    def load_images_hdf5(self):
-        pass
+    def load_images_hdf5(self, rewrite: bool = False):
+        if not self.hdf5_fname.is_file() or rewrite:
+            self.save_images_hdf5()
+        dset = h5py.File(self.hdf5_fname, "r")
+        return dset
 
-    def save_images_hdf5(self):
-        pass
+    def save_images_hdf5(self) -> None:
+        with h5py.File(self.hdf5_fname, "w", libver="latest") as f:
+            for ii, row in self.data_with_labels.iterrows():
+                image_fpath = IMAGES_DIR / f"{row['Image_Name']}.jpg"
+                with Image.open(image_fpath) as fi:
+                    image = np.array(fi)
+                f.create_dataset(str(ii), data=image, compression="gzip")
 
     def __len__(self) -> int:
         return len(self.data_with_labels)
@@ -52,20 +60,15 @@ class ImageDataset(Dataset):
 
         this_label = float(self.data_with_labels['contains_gluten'][idx])
         y = torch.tensor(this_label)
+        image = self.dset[str(idx)]
+        image = transforms.functional.to_tensor(np.array(image))
+        image = transforms.functional.resize(image, 64)
+        image = transforms.functional.normalize(
+            image,
+            (0.5, 0.5, 0.5),
+            (0.5, 0.5, 0.5))
 
-        with Image.open(
-            f"{IMAGES_DIR}/{self.data_with_labels['Image_Name'][idx]}.jpg") as f:
-            # Image size 274x169
-            image = np.array(f)
-            # image = image[..., :3]
-
-            image = transforms.functional.to_tensor(image)
-            image = transforms.functional.normalize(
-                image,
-                (0.5, 0.5, 0.5),
-                (0.5, 0.5, 0.5))
-
-            return image, y
+        return image, y
 
 
 def split_dset(raw_data: pd.DataFrame) ->\
@@ -115,21 +118,28 @@ def load_image_text_linker() -> pd.DataFrame:
 def clean_dataset() -> None:
     image_text_linker = pd.read_csv(LINKER_FPATH)
     print(f"Size before cleaning: {len(image_text_linker)}")
-    for fpath in IMAGES_DIR.iterdir():
-        with Image.open(fpath) as image:
-            if (
-                image.size != (274, 169) or
-                image.mode != 'RGB' or
-                fpath.stat().st_size/1024 <= 7
-                ):
-                image_name = fpath.parts[-1][:-4]
-                image_text_linker = image_text_linker[
-                    image_text_linker['Image_Name'] != image_name]
+    image_names = image_text_linker["Image_Name"]
+    for image_name in image_names:
+        fpath = IMAGES_DIR / f"{image_name}.jpg"
+        if not fpath.is_file():
+            image_text_linker = image_text_linker[
+                image_text_linker['Image_Name'] != image_name]
+        else:
+            with Image.open(fpath) as image:
+                if (
+                    image.size != (274, 169) or
+                    image.mode != 'RGB' or
+                    fpath.stat().st_size/1024 <= 7
+                    ):
+                    image_name = fpath.parts[-1][:-4]
+                    image_text_linker = image_text_linker[
+                        image_text_linker['Image_Name'] != image_name]
     print(f"Size after cleaning: {len(image_text_linker)}")
-    image_text_linker.to_csv(LINKER_FPATH)
+    image_text_linker.to_csv(LINKER_FPATH)  # type: ignore
 
 
 def show_example_dishes(n_rows):
+    clean_dataset()
     import matplotlib.pyplot as plt
     data, _, _ = get_train_val_test()
     fig, ax = plt.subplots(n_rows, n_rows)
@@ -138,7 +148,7 @@ def show_example_dishes(n_rows):
     for ii in range(n_rows):
         for jj in range(n_rows):
             image, label = data.__getitem__(idx)
-            ax[ii, jj].imshow(image.permute(2, 1, 0))
+            ax[ii, jj].imshow(image.permute(2, 1, 0))  # type: ignore
             ax[ii, jj].set_xticks([])
             ax[ii, jj].set_yticks([])
             ax[ii, jj].set_title(bool(label))

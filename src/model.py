@@ -14,16 +14,16 @@ class AllergenClassifier(pl.LightningModule):
         super(AllergenClassifier, self).__init__()
 
         self.feature_extractor = nn.Sequential(
-                nn.Conv2d(3, 128, (3, 3), padding=1),
+                nn.Conv2d(3, 64, (5, 5), padding=1),
                 nn.MaxPool2d(5),
                 nn.ReLU(),
-                nn.Conv2d(128, 32, (3, 3), padding=1),
+                nn.Conv2d(64, 256, (3, 3), padding=1),
                 nn.MaxPool2d(5),
                 nn.ReLU(),
                 nn.Flatten())
 
         self.head = nn.Sequential(
-                nn.Linear(1920, 32),
+                nn.Linear(2048, 32),
                 nn.Linear(32, 1),
                 nn.Sigmoid())
 
@@ -87,4 +87,4 @@ class AllergenClassifier(pl.LightningModule):
         self.log("val_loss", loss)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=3e-4)
+        return torch.optim.Adam(self.parameters(), lr=1e-4)

@@ -2,4 +2,10 @@
 *.swp
 *.csv
 *.jpg
+*.yaml
+*.pyc
+lightning_logs/*
+data/hdf5_store/*
+*checkpoints*
+wandb/*
 tags

@@ -36,6 +36,14 @@ class ImageDataset(Dataset):
         self.data_with_labels = self.data_with_labels.reset_index()
         self.hdf5_fname = HDF5_STORE_DIR / f"{which_split}.hdf5"
         self.dset = self.load_images_hdf5()
+        normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.preprocessing = transforms.Compose([
+            transforms.Scale(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            normalize
+        ])
     
     def load_images_hdf5(self, rewrite: bool = False):
         if not self.hdf5_fname.is_file() or rewrite:
@@ -60,13 +68,9 @@ class ImageDataset(Dataset):
 
         this_label = float(self.data_with_labels['contains_gluten'][idx])
         y = torch.tensor(this_label)
-        image = self.dset[str(idx)]
-        image = transforms.functional.to_tensor(np.array(image))
-        image = transforms.functional.resize(image, 64)
-        image = transforms.functional.normalize(
-            image,
-            (0.5, 0.5, 0.5),
-            (0.5, 0.5, 0.5))
+        image = Image.fromarray(np.array(self.dset[str(idx)]))
+        image = self.preprocessing(image)
+        # image = transforms.functional.to_tensor(np.array(image))
 
         return image, y
 

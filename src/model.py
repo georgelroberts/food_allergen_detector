@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-import sklearn
 from sklearn.metrics import accuracy_score
 import pytorch_lightning as pl
 import torch.multiprocessing
+import torchvision.models as models
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
@@ -11,26 +11,20 @@ class AllergenClassifier(pl.LightningModule):
 
     def __init__(self):
 
-        super(AllergenClassifier, self).__init__()
-
-        self.feature_extractor = nn.Sequential(
-                nn.Conv2d(3, 64, (5, 5), padding=1),
-                nn.MaxPool2d(5),
-                nn.ReLU(),
-                nn.Conv2d(64, 256, (3, 3), padding=1),
-                nn.MaxPool2d(5),
-                nn.ReLU(),
-                nn.Flatten())
-
+        super().__init__()
+        backbone = models.resnet50(pretrained=True)
+        num_filters = backbone.fc.in_features
+        layers = list(backbone.children())[:-1]
+        self.feature_extractor = nn.Sequential(*layers)
         self.head = nn.Sequential(
-                nn.Linear(2048, 32),
-                nn.Linear(32, 1),
-                nn.Sigmoid())
+            nn.Linear(num_filters, 1),
+            nn.Sigmoid())
 
     def forward(self, x):
-
-        x = self.feature_extractor(x)
-        output = self.head(x)
+        self.feature_extractor.eval()
+        with torch.no_grad():
+            representations = self.feature_extractor(x).flatten(1)
+        output = self.head(representations)
 
         return output
 

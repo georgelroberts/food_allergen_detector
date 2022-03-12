@@ -23,7 +23,7 @@ GLUTEN_INGREDIENTS = [
 
 #  Also can uncomment the following to add ingredients that only sometimes contain gluten
 GLUTEN_INGREDIENTS.extend(['soy sauce'])
-TRAIN_VAL_TEST_PROPORTIONS = (0.1, 0.1, 0.8)
+TRAIN_VAL_TEST_PROPORTIONS = (0.8, 0.1, 0.1)
 
 
 def main():

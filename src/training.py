@@ -1,9 +1,10 @@
 from tkinter import W
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import BackboneFinetuning
 from torch.utils.data import DataLoader
 
-from src.load_data import get_train_val_test, clean_dataset
+from src.load_data import DandelionGrassImageDataset, get_train_val_test, clean_dataset
 from src.model import AllergenClassifier
 import torch.multiprocessing
 sharing_strategy = "file_system"
@@ -21,19 +22,21 @@ def main():
     wandb_logger = WandbLogger()
     model = AllergenClassifier()
     wandb_logger.watch(model, log="all")
-    trainer = pl.Trainer(max_epochs=20, logger=wandb_logger)
+    backbone_finetuning = BackboneFinetuning(200, lambda epoch: 1.5)
+    trainer = pl.Trainer(
+        max_epochs=20, logger=wandb_logger, callbacks=[backbone_finetuning])
     trainer.fit(
         model,
         DataLoader(
             train_dataset,
             num_workers=0,
-            batch_size=32,
+            batch_size=16,
             shuffle=True,
             worker_init_fn=set_worker_sharing_strategy),
         DataLoader(
             val_dataset,
             num_workers=0,
-            batch_size=32,
+            batch_size=16,
             worker_init_fn=set_worker_sharing_strategy)
         )
 

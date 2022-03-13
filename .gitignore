@@ -4,6 +4,8 @@
 *.jpg
 *.yaml
 *.pyc
+*.ckpt
+*.xml
 lightning_logs/*
 data/hdf5_store/*
 *checkpoints*

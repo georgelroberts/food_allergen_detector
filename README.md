@@ -7,15 +7,22 @@ This starts with just gluten, but will hopefully expand to other allergens.
 ## Prerequisites
 
 Please find the packages in requirements.txt.
-Please add the root of the directory to the python path (if using conda:
+Please add the root of the directory to the python path. If using conda:
 - conda install conda-build
 - conda develop <root_dir_path>
 
 ## Datasets
 
+I have built a dataset myself using BBC Good Food recipes (all with high quality images), by scraping
+the image and the ingredients. Download https://www.bbc.co.uk/food/sitemap.xml and run src/bbc_good_food_scraper.py
+to get the data.
+
+
+### OLD
 The initial dataset can be downloaded from https://www.kaggle.com/pes12017000148/food-ingredients-and-recipe-dataset-with-images. 
 This contains 13,582 food images, along with an ingredient dish and a description of the dish. 
 There is also a dataset AIFood that contains 370,000 food images, however this appears to not be publically available.
+This dataset was found to be too noisy, with incorrect labels and low quality images.
 
 <!-- ROADMAP -->
 ## Roadmap

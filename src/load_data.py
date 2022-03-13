@@ -1,4 +1,4 @@
-import pandas as pd
+import re
 from typing import List, Tuple
 import numpy as np
 import h5py
@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 import torch.multiprocessing
 
-from src.file_locations import LINKER_FPATH, IMAGES_DIR, HDF5_STORE_DIR
+from src.file_locations import BBC_IMAGES_DIR, BBC_INGREDIENTS_FPATH, LINKER_FPATH, IMAGES_DIR, HDF5_STORE_DIR
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 GLUTEN_INGREDIENTS = [
@@ -18,7 +18,7 @@ GLUTEN_INGREDIENTS = [
     'farro', 'couscous', 'flour', 'gluten', 'bread', 'sourdough', 'bagels',
     'tortillas', 'malt', 'cake', 'cookie', 'pastry', 'spaghetti', 'penne',
     'beer', 'macaroni', 'pasta', 'penne', 'ravioli', 'lasagne', 'linguine',
-    'rigatoni', 'farfalle', 'fusilli', 'loaf', 'cannelloni'
+    'rigatoni', 'farfalle', 'fusilli', 'loaf', 'cannelloni', 'brioche'
     ]
 
 #  Also can uncomment the following to add ingredients that only sometimes contain gluten
@@ -27,13 +27,13 @@ TRAIN_VAL_TEST_PROPORTIONS = (0.8, 0.1, 0.1)
 
 
 def main():
-    show_example_dishes(n_rows=4)
+    pass
 
 
 class ImageDataset(Dataset):
     def __init__(self, raw_data, which_split):
-        self.data_with_labels = add_labels_to_data(raw_data)
-        self.data_with_labels = self.data_with_labels.reset_index()
+        self.labels = get_labels_from_data(raw_data)
+        self.raw_data = raw_data
         self.hdf5_fname = HDF5_STORE_DIR / f"{which_split}.hdf5"
         self.dset = self.load_images_hdf5()
         normalize = transforms.Normalize(
@@ -53,29 +53,30 @@ class ImageDataset(Dataset):
 
     def save_images_hdf5(self) -> None:
         with h5py.File(self.hdf5_fname, "w", libver="latest") as f:
-            for ii, row in self.data_with_labels.iterrows():
-                image_fpath = IMAGES_DIR / f"{row['Image_Name']}.jpg"
+            for ii, row in enumerate(self.raw_data):
+                image_fpath = BBC_IMAGES_DIR / f"{row[0]}.jpg"
                 with Image.open(image_fpath) as fi:
                     image = np.array(fi)
                 f.create_dataset(str(ii), data=image, compression="gzip")
 
     def __len__(self) -> int:
-        return len(self.data_with_labels)
+        return len(self.labels)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        this_label = float(self.data_with_labels['contains_gluten'][idx])
+        this_label = float(self.labels[idx])
         y = torch.tensor(this_label)
         image = Image.fromarray(np.array(self.dset[str(idx)]))
         image = self.preprocessing(image)
-        # image = transforms.functional.to_tensor(np.array(image))
+        name = self.raw_data[idx][0]
+        ingredients = self.raw_data[idx][1]
 
-        return image, y
+        return image, y, name, ingredients
 
 
-def split_dset(raw_data: pd.DataFrame) ->\
+def split_dset(raw_data: List[List[str]]) ->\
         Tuple[ImageDataset, ImageDataset, ImageDataset]:
     data_length = len(raw_data)
     train_end = int(TRAIN_VAL_TEST_PROPORTIONS[0] * data_length)
@@ -97,67 +98,36 @@ def get_train_val_test() ->\
     return train_dataset, val_dataset, test_dataset
 
 
-def add_labels_to_data(data: pd.DataFrame) -> pd.DataFrame:
+def get_labels_from_data(data: List[List[str]]) -> List[int]:
     labels = []
-    for _, row in data.iterrows():
-        ingredients = str(row['Cleaned_Ingredients']).split(',')
-        labels.append(does_dish_contain_gluten(ingredients))
-    data['contains_gluten'] = labels
-    return data
+    for meal in data:
+        ingredients = " ".join(meal[1:])
+        labels.append(does_dish_contain_gluten(ingredients.lower()))
+    return labels
 
 
-def does_dish_contain_gluten(ingredients: List[str]) -> bool:
+def does_dish_contain_gluten(ingredients: str) -> bool:
     is_glutenous = False
     for gluten_ingredient in GLUTEN_INGREDIENTS:
-        if next((s for s in ingredients if gluten_ingredient in s.lower()), None):
+        if gluten_ingredient in ingredients:
             is_glutenous = True
     return is_glutenous
 
 
-def load_image_text_linker() -> pd.DataFrame:
-    data = pd.read_csv(LINKER_FPATH)
-    return data
-
-
-def clean_dataset() -> None:
-    image_text_linker = pd.read_csv(LINKER_FPATH)
-    print(f"Size before cleaning: {len(image_text_linker)}")
-    image_names = image_text_linker["Image_Name"]
-    for image_name in image_names:
-        fpath = IMAGES_DIR / f"{image_name}.jpg"
-        if not fpath.is_file():
-            image_text_linker = image_text_linker[
-                image_text_linker['Image_Name'] != image_name]
-        else:
-            with Image.open(fpath) as image:
-                if (
-                    image.size != (274, 169) or
-                    image.mode != 'RGB' or
-                    fpath.stat().st_size/1024 <= 7
-                    ):
-                    image_name = fpath.parts[-1][:-4]
-                    image_text_linker = image_text_linker[
-                        image_text_linker['Image_Name'] != image_name]
-    print(f"Size after cleaning: {len(image_text_linker)}")
-    image_text_linker.to_csv(LINKER_FPATH)  # type: ignore
-
-
-def show_example_dishes(n_rows):
-    clean_dataset()
-    import matplotlib.pyplot as plt
-    data, _, _ = get_train_val_test()
-    fig, ax = plt.subplots(n_rows, n_rows)
-    fig.suptitle("Does dish contain gluten or not")
-    idx = 0
-    for ii in range(n_rows):
-        for jj in range(n_rows):
-            image, label = data.__getitem__(idx)
-            ax[ii, jj].imshow(image.permute(2, 1, 0))  # type: ignore
-            ax[ii, jj].set_xticks([])
-            ax[ii, jj].set_yticks([])
-            ax[ii, jj].set_title(bool(label))
-            idx += 1
-    plt.show()
+def load_image_text_linker() -> List[List[str]]:
+    with open(BBC_INGREDIENTS_FPATH, "r") as f:
+        data = f.readlines()
+    data = [x.split(",") for x in data]
+    new_data = []
+    for dpoint in data:
+        ingredients = " ".join(dpoint[1:])
+        ingredients = ingredients.split('"')
+        ingredients = [x.strip() for x in ingredients if x.strip()]
+        ingredients = [re.sub(" +", " ", x) for x in ingredients]
+        ingredients = "\n".join(ingredients)
+        this_dpoint = [dpoint[0]] + [ingredients]
+        new_data.append(this_dpoint)
+    return new_data
 
 
 if __name__ == '__main__':

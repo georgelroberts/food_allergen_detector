@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from sklearn.metrics import accuracy_score
 import pytorch_lightning as pl
 import torch.multiprocessing
 import torchvision.models as models
@@ -10,9 +9,10 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 
 class AllergenClassifier(pl.LightningModule):
 
-    def __init__(self):
+    def __init__(self, learning_rate):
 
         super().__init__()
+        self.learning_rate = learning_rate
         backbone = models.resnet50(pretrained=True)
         num_filters = backbone.fc.in_features
         layers = list(backbone.children())[:-1]
@@ -29,8 +29,10 @@ class AllergenClassifier(pl.LightningModule):
         return output
 
     def training_step(self, batch, batch_index):
-
-        x, y = batch
+        try:
+            x, y, _, _ = batch
+        except ValueError:
+            x, y, _, _ = batch[0]
 
         output = self.forward(x)
         loss = nn.BCEWithLogitsLoss()(output, y.unsqueeze(1))
@@ -43,8 +45,10 @@ class AllergenClassifier(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-
-        x, y = batch
+        try:
+            x, y, _, _ = batch
+        except ValueError:
+            x, y, _, _ = batch[0]
 
         output = self.forward(x)
 
@@ -59,7 +63,7 @@ class AllergenClassifier(pl.LightningModule):
         outputs = None
         # preds = None
         tgts = None
-        for output, pred, tgt in validation_step_outputs:
+        for output, _, tgt in validation_step_outputs:
             # preds = torch.cat([preds, pred]) if preds is not None else pred
             outputs = torch.cat([outputs, output], dim = 0) \
             if outputs is not None else output
@@ -67,15 +71,11 @@ class AllergenClassifier(pl.LightningModule):
 
         loss = nn.BCEWithLogitsLoss()(outputs, tgts.unsqueeze(1))
 
-        # y_preds = preds.cpu().numpy()
-        # y_tgts = tgts.cpu().numpy()
-        # pytorch lightning prints a deprecation warning for FM.accuracy,
-        # so we'll include sklearn.metrics.accuracy_score as an alternative
-        # accuracy = accuracy_score(y_tgts, y_preds)
         accuracy = Accuracy(threshold=0)(outputs, tgts.int().unsqueeze(1))
 
         self.log("val_accuracy", accuracy)
         self.log("val_loss", loss)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        return torch.optim.Adam(
+            self.parameters(), lr=self.learning_rate)

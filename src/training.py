@@ -34,7 +34,7 @@ def train_model(model, train_dataloader, val_dataloader):
     backbone_finetuning = BackboneFinetuning(
         unfreeze_backbone_at_epoch=20)
     checkpoint_callback = ModelCheckpoint(
-        dirpath=MODEL_CHECKPOINTS_DIR,
+        dirpath=MODEL_CHECKPOINTS_DIR / "pasta",
         filename="{epoch}-{val_loss:.2f}-{val_accuracy:.2f}",
         monitor="val_accuracy",
         mode="max")
@@ -53,7 +53,7 @@ def get_train_val_dataloaders():
     train_dataset, val_dataset, _ = get_train_val_test()
     print(f"{len(train_dataset)} training samples")
     train_imbalance = sum(train_dataset.labels) / len(train_dataset) * 100
-    print(f"Train imbalance: {train_imbalance:.2f}% with gluten")
+    print(f"Train imbalance: {train_imbalance:.2f}% with pasta")
     val_imbalance = sum(val_dataset.labels) / len(val_dataset) * 100
     print(f"Val imbalance: {val_imbalance:.2f}% with gluten")
     train_dataloader = DataLoader(

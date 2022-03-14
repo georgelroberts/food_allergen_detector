@@ -13,16 +13,18 @@ import torch.multiprocessing
 from src.file_locations import BBC_IMAGES_DIR, BBC_INGREDIENTS_FPATH, LINKER_FPATH, IMAGES_DIR, HDF5_STORE_DIR
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-GLUTEN_INGREDIENTS = [
-    'wheat', 'barley',  'rye', 'triticale', 'farina', 'spelt', 'kamut',
-    'farro', 'couscous', 'flour', 'gluten', 'bread', 'sourdough', 'bagels',
-    'tortillas', 'malt', 'cake', 'cookie', 'pastry', 'spaghetti', 'penne',
-    'beer', 'macaroni', 'pasta', 'penne', 'ravioli', 'lasagne', 'linguine',
-    'rigatoni', 'farfalle', 'fusilli', 'loaf', 'cannelloni', 'brioche'
-    ]
+# GLUTEN_INGREDIENTS = [
+#     'wheat', 'barley',  'rye', 'triticale', 'farina', 'spelt', 'kamut',
+#     'farro', 'couscous', 'flour', 'gluten', 'bread', 'sourdough', 'bagels',
+#     'tortillas', 'malt', 'cake', 'cookie', 'pastry', 'spaghetti', 'penne',
+#     'beer', 'macaroni', 'pasta', 'ravioli', 'lasagne', 'linguine',
+#     'rigatoni', 'farfalle', 'fusilli', 'loaf', 'cannelloni', 'brioche'
+#     ]
+PASTA_INGREDIENTS = [
+    "pasta", "spaghetti", "penne", "macaroni", "ravioli", "lasagne", "linguini",
+    "tagliatelle", "rigatoni", "farfalle", "fusilli", "cannelloni", "gnocchi"
+]
 
-#  Also can uncomment the following to add ingredients that only sometimes contain gluten
-GLUTEN_INGREDIENTS.extend(['soy sauce'])
 TRAIN_VAL_TEST_PROPORTIONS = (0.8, 0.1, 0.1)
 
 
@@ -102,16 +104,16 @@ def get_labels_from_data(data: List[List[str]]) -> List[int]:
     labels = []
     for meal in data:
         ingredients = " ".join(meal[1:])
-        labels.append(does_dish_contain_gluten(ingredients.lower()))
+        labels.append(does_dish_contain_pasta(ingredients.lower()))
     return labels
 
 
-def does_dish_contain_gluten(ingredients: str) -> bool:
-    is_glutenous = False
-    for gluten_ingredient in GLUTEN_INGREDIENTS:
-        if gluten_ingredient in ingredients:
-            is_glutenous = True
-    return is_glutenous
+def does_dish_contain_pasta(ingredients: str) -> bool:
+    is_pasta = False
+    for pasta_ingredient in PASTA_INGREDIENTS:
+        if pasta_ingredient in ingredients:
+            is_pasta = True
+    return is_pasta
 
 
 def load_image_text_linker() -> List[List[str]]:

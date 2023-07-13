@@ -19,10 +19,10 @@ class PlotSamplesCallback(Callback):
                 x, y, _, _ = batch
             except ValueError:
                 x, y, _, _ = batch[0]
-            images = [img for img in x[:n]]
+            images = list(x[:n])
             captions = [f"Ground Truth: {bool(y_i)} - Prediction: {y_pred.numpy()[0]}" 
                 for y_i, y_pred in zip(y[:n], (outputs[0] > 0)[:n])]
-            
+
             self.wandb_logger.log_image(
                 key="sample_images", 
                 images=images, 
@@ -48,11 +48,11 @@ class PlotIncorrectSamplesCallback(Callback):
             x, y, names, all_ingredients = batch
         except ValueError:
             x, y, names, all_ingredients = batch[0]
-        
+
         all_data = []
         for prediction, ground_truth, image, name, ingredients in zip(
             outputs[0], y, x, names, all_ingredients):
-            bool_prediction = bool(prediction > 0)
+            bool_prediction = prediction > 0
             if no_plotted >= self.no_to_plot or bool_prediction == ground_truth:
                 continue
             wandb_image = wandb.Image(image)

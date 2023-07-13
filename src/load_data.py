@@ -14,15 +14,43 @@ from src.file_locations import BBC_IMAGES_DIR, BBC_INGREDIENTS_FPATH, LINKER_FPA
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 GLUTEN_INGREDIENTS = [
-    'wheat', 'barley',  'rye', 'triticale', 'farina', 'spelt', 'kamut',
-    'farro', 'couscous', 'flour', 'gluten', 'bread', 'sourdough', 'bagels',
-    'tortillas', 'malt', 'cake', 'cookie', 'pastry', 'spaghetti', 'penne',
-    'beer', 'macaroni', 'pasta', 'penne', 'ravioli', 'lasagne', 'linguine',
-    'rigatoni', 'farfalle', 'fusilli', 'loaf', 'cannelloni', 'brioche'
-    ]
+    'wheat',
+    'barley',
+    'rye',
+    'triticale',
+    'farina',
+    'spelt',
+    'kamut',
+    'farro',
+    'couscous',
+    'flour',
+    'gluten',
+    'bread',
+    'sourdough',
+    'bagels',
+    'tortillas',
+    'malt',
+    'cake',
+    'cookie',
+    'pastry',
+    'spaghetti',
+    'penne',
+    'beer',
+    'macaroni',
+    'pasta',
+    'penne',
+    'ravioli',
+    'lasagne',
+    'linguine',
+    'rigatoni',
+    'farfalle',
+    'fusilli',
+    'loaf',
+    'cannelloni',
+    'brioche',
+    'soy sauce',
+]
 
-#  Also can uncomment the following to add ingredients that only sometimes contain gluten
-GLUTEN_INGREDIENTS.extend(['soy sauce'])
 TRAIN_VAL_TEST_PROPORTIONS = (0.8, 0.1, 0.1)
 
 
@@ -48,8 +76,7 @@ class ImageDataset(Dataset):
     def load_images_hdf5(self, rewrite: bool = False):
         if not self.hdf5_fname.is_file() or rewrite:
             self.save_images_hdf5()
-        dset = h5py.File(self.hdf5_fname, "r")
-        return dset
+        return h5py.File(self.hdf5_fname, "r")
 
     def save_images_hdf5(self) -> None:
         with h5py.File(self.hdf5_fname, "w", libver="latest") as f:
@@ -107,11 +134,10 @@ def get_labels_from_data(data: List[List[str]]) -> List[int]:
 
 
 def does_dish_contain_gluten(ingredients: str) -> bool:
-    is_glutenous = False
-    for gluten_ingredient in GLUTEN_INGREDIENTS:
-        if gluten_ingredient in ingredients:
-            is_glutenous = True
-    return is_glutenous
+    return any(
+        gluten_ingredient in ingredients
+        for gluten_ingredient in GLUTEN_INGREDIENTS
+    )
 
 
 def load_image_text_linker() -> List[List[str]]:

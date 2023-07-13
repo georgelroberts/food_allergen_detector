@@ -24,9 +24,7 @@ class AllergenClassifier(pl.LightningModule):
         self.backbone.eval()
         with torch.no_grad():
             representations = self.backbone(x).flatten(1)
-        output = self.head(representations)
-
-        return output
+        return self.head(representations)
 
     def training_step(self, batch, batch_index):
         try:

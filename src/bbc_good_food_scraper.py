@@ -55,12 +55,11 @@ def get_and_save_image_data(recipe_id, soup):
             image = Image.open(io.BytesIO(img_data))
         except UnidentifiedImageError:
             continue
-        if image.mode == "P" or image.mode == "CMYK":
-            # Image doesn't exist for requested recipe
-            img_data = None
-            continue
-        else:
+        if image.mode not in ["P", "CMYK"]:
             break
+        # Image doesn't exist for requested recipe
+        img_data = None
+        continue
     if img_data:
         with open(BBC_IMAGES_DIR / f"{recipe_id}.jpg", "wb") as f:
             f.write(img_data)
